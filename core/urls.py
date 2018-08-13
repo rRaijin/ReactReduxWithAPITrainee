@@ -4,7 +4,7 @@ from django.urls import path
 
 from rest_framework import routers
 from rest_framework_swagger.views import get_swagger_view
-from rest_framework_jwt.views import obtain_jwt_token
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from back.api.book.views import *
 from back.api.user.views import *
@@ -18,11 +18,24 @@ router.register(r'users', UserViewSet)
 # Schema
 schema_view = get_swagger_view(title='Pastebin API')
 
+from rest_framework import views, serializers, status
+from rest_framework.response import Response
+
+class MessageSerializer(serializers.Serializer):
+    message = serializers.CharField()
+class EchoView(views.APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = MessageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(
+            serializer.data, status=status.HTTP_201_CREATED)
+
 urlpatterns = [
-    path('login/', UserLoginAPIView.as_view(), name="login"),
-    path('logout/', UserLogoutAPIView.as_view(), name="logout"),
+    path('api/auth', include('rest_framework.urls', namespace='rest_framework')),
+    path('api/auth/token/obtain', TokenObtainPairView.as_view()),
+    path('api/auth/token/refresh', TokenRefreshView.as_view()),
+    path('api/echo/', EchoView.as_view()),
     path('schema/', schema_view),
-    path('obtain-token/', obtain_jwt_token),
     path('admin/', admin.site.urls),
     path('', include(router.urls)),
 ]
